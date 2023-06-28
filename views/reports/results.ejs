@@ -1,0 +1,33 @@
+<%- include('../head.ejs') %>
+<body>
+  <h1>Lighthouse Bulk Reports</h1>
+  <h2>Mode: <%= emulationMode %></h2>
+  <table>
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Overall</th>
+        <th>Performance</th>
+        <th>Accessibility</th>
+        <th>Best Practices</th>
+        <th>SEO</th>
+        <th>PWA</th>
+        <th>Complete Report</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (var i = 0; i < reports.length; i++) { %>
+        <tr>
+          <td><%= reports[i].url %></td>
+          <td><%= reports[i].score %></td>
+          <td><%= reports[i].detail.performance %></td>
+          <td><%= reports[i].detail.accessibility %></td>
+          <td><%= reports[i].detail["best-practices"] %></td>
+          <td><%= reports[i].detail.seo %></td>
+          <td><%= reports[i].detail.pwa %></td>
+          <td><a href="../lighthouse/<%= reports[i].html %>">Full Page Report</a></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</body>

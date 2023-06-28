@@ -1,0 +1,26 @@
+{
+  "name": "lighthouse-batch-gui",
+  "version": "1.0.0",
+  "description": "Batch Lighthouse reports displayed in a concise HTML page",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon -r esm app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nick-elpedes/lighthouse-batch-gui.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nick-elpedes/lighthouse-batch-gui/issues"
+  },
+  "homepage": "https://github.com/nick-elpedes/lighthouse-batch-gui#readme",
+  "dependencies": {
+    "ejs": "^3.1.9",
+    "esm": "^3.2.25",
+    "express": "^4.18.2",
+    "nodemon": "^2.0.22"
+  }
+}
