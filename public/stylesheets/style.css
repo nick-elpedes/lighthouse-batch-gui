@@ -1,8 +1,18 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-a {
-  color: #00B7FF;
+body {
+  width: 768px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+}
+
+input[type="submit"] {
+  width: 100%;
 }

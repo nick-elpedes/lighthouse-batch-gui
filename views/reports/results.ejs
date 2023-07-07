@@ -1,33 +1,51 @@
 <%- include('../head.ejs') %>
 <body>
+  <p id="thisHere"></p>
+  <script type="text/javascript">
+    const source = new EventSource("/sse");
+    source.addEventListener("message", (message) => {
+      console.log("Got ", message);
+      const data = JSON.parse(event.data);
+      console.log(data);
+      const overallScore =
+        ((data.lhr.categories.performance.score +
+        data.lhr.categories.accessibility.score +
+        data.lhr.categories["best-practices"].score +
+        data.lhr.categories.seo.score) / 4) * 100;
+
+      document.getElementById("results").insertAdjacentHTML(
+        "beforeend",
+        `<tr>
+            <td>${data.title}</td>
+            <td>${data.url}</td>
+            <td>${overallScore}</td>
+            <td>${data.lhr.categories.performance.score * 100}</td>
+            <td>${data.lhr.categories.accessibility.score * 100}</td>
+            <td>${data.lhr.categories["best-practices"].score * 100}</td>
+            <td>${data.lhr.categories.seo.score * 100}</td>
+            <td><a target="_blank" rel="noreferrer noopener" href="/lighthouse/${
+              data.fileId
+            }.html">View Report</a></td>
+          </tr>`
+      );
+    });
+  </script>
   <h1>Lighthouse Bulk Reports</h1>
   <h2>Mode: <%= emulationMode %></h2>
+
   <table>
     <thead>
       <tr>
+        <th>Title</th>
         <th>URL</th>
         <th>Overall</th>
         <th>Performance</th>
         <th>Accessibility</th>
         <th>Best Practices</th>
         <th>SEO</th>
-        <th>PWA</th>
         <th>Complete Report</th>
       </tr>
     </thead>
-    <tbody>
-      <% for (var i = 0; i < reports.length; i++) { %>
-        <tr>
-          <td><%= reports[i].url %></td>
-          <td><%= reports[i].score %></td>
-          <td><%= reports[i].detail.performance %></td>
-          <td><%= reports[i].detail.accessibility %></td>
-          <td><%= reports[i].detail["best-practices"] %></td>
-          <td><%= reports[i].detail.seo %></td>
-          <td><%= reports[i].detail.pwa %></td>
-          <td><a href="../lighthouse/<%= reports[i].html %>">Full Page Report</a></td>
-        </tr>
-      <% } %>
-    </tbody>
+    <tbody id="results"></tbody>
   </table>
 </body>

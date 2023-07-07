@@ -1,47 +1,32 @@
 <%- include('../head.ejs') %>
 <body>
   <h1>Generate Bulk Page Lighthouse Report</h1>
-  <form action="/reports/generate" method="post" onsubmit="validateForm(event)">
-    <label for="urls">URLs</label>
-    <textarea
-      name="urls"
-      id="urls"
-      title="URLs delimited by a comma."
-    ></textarea>
-    <input type="checkbox" name="emulationMode" id="emulationMode"/> <label for="emulationMode">Emulate Mobile Device?</label>
+  <br />
+  <br />
+  <form
+    id="urlForm"
+    action="/reports/generate"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <label for="url">Input URL</label> <input type="url" name="url" id="url" />
+
+    <br /><br />
+    OR
+    <br /><br />
+
+    <label for="csvFile">Upload CSV File</label>
+    <input type="file" name="csvFile" id="csvFile" />
+
+    <br />
+    <br />
+
+    <h2>Settings</h2>
+    <label for="emulationMode">Emulate Mobile Device?</label>
+    <input type="checkbox" name="emulationMode" id="emulationMode" />
+
+    <br />
+    <br />
     <input type="submit" value="Generate" />
-
-    <script>
-      function validateForm(event) {
-        event.preventDefault(); // Prevent default form submission behavior
-        var inputElement = document.getElementById("urls");
-
-        var urls = inputElement.value.split(",");
-        console.log(urls);
-        var isValid = true;
-
-        for (var i = 0; i < urls.length; i++) {
-          var url = urls[i].trim();
-          var urlPattern = /^(https):\/\/[^\s/$.?#]+\.[^\s,]+$/;
-
-          console.log(url);
-          if (!urlPattern.test(url)) {
-            isValid = false;
-            break;
-          }
-        }
-
-        //var regex = /^(https?):\/\/[^\s/$.?#].[^\s]*,(?=\s|$)$/g;
-
-        if (!isValid) {
-          inputElement.setCustomValidity("Invalid URLs. Please enter URLs delimited by a comma with no whitespace.");
-        } else {
-          inputElement.setCustomValidity(""); // Clear error message
-          // Proceed with form submission
-          event.target.submit();
-        }
-      }
-    </script>
   </form>
 </body>
-
