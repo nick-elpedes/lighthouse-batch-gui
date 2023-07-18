@@ -12,13 +12,17 @@ h1 {
   text-align: center;
 }
 
-th {
+.header {
   font-weight: bold;
   cursor: pointer;
 }
 
-th.not-sortable {
+.header.not-sortable {
   cursor: not-allowed;
+}
+
+#averages {
+  background-color: lightgrey;
 }
 
 input[type="submit"] {

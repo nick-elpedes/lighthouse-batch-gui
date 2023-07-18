@@ -48,8 +48,8 @@ app.use("/sse", async function (req, res) {
 app.post("/reports/generate", async function (req, res, next) {
   const form = formidable({uploadDir: path.join(__dirname, "uploads/csv")});
   const [fields, files] = await form.parse(req);
-  console.log(fields);
-  console.log(files);
+  /* console.log(fields);
+  console.log(files); */
 
   const singleUrl = fields.url ? fields.url[0] : null;
   const csv = files.csvFile[0]
@@ -67,11 +67,12 @@ app.post("/reports/generate", async function (req, res, next) {
       // define the condition as you like
       await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log("user is defined");
-    console.log(user.res);
+    /* console.log(user.res); */
   })();
 
   if (!singleUrl && csv) {
     const csvFile = fs.readFileSync(path.join(__dirname, csv), "utf8");
+    fs.unlinkSync(path.join(__dirname, csv));
 
     const rows = Papa.parse(csvFile, {
       header: true,
@@ -81,7 +82,7 @@ app.post("/reports/generate", async function (req, res, next) {
     var currentIndex = 0;
     for (const row of rows.data) {
       currentIndex++;
-      console.log(user);
+      /* console.log(user); */
 
       user.res.write(
         `data: ${JSON.stringify({

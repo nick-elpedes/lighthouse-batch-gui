@@ -14,19 +14,25 @@
       }
     }
 
+    function replaceScoreClass(element, score) {
+      element.classList.remove("score-green");
+      element.classList.remove("score-yellow");
+      element.classList.remove("score-red");
+      element.classList.add(getScoreClass(score));
+    }
+
     source.addEventListener("message", (message) => {
       console.log("Got ", message);
       const data = JSON.parse(event.data);
       console.log(data);
 
-      if(Object.keys(data).includes("reportData")) {
-        document.getElementById("report-count").innerText = data.reportData.reportCount;
-        document.getElementById("current-report").innerText = data.reportData.currentReport;
+      if (Object.keys(data).includes("reportData")) {
+        document.getElementById("report-count").innerText =
+          data.reportData.reportCount;
+        document.getElementById("current-report").innerText =
+          data.reportData.currentReport;
         return;
-
       }
-
-
 
       const perfScore = data.lhr.categories.performance.score * 100;
       const accScore = data.lhr.categories.accessibility.score * 100;
@@ -41,7 +47,9 @@
         "beforeend",
         `<tr>
             <td>${data.title}</td>
-            <td><a target="_blank" rel="noreferrer noopener" href="${data.url}">${data.url}</a></td>
+            <td><a target="_blank" rel="noreferrer noopener" href="${
+              data.url
+            }">${data.url}</a></td>
             <td class="${getScoreClass(overallScore)}">${overallScore}</td>
             <td class="${getScoreClass(perfScore)}">${perfScore}</td>
             <td class="${getScoreClass(accScore)}">${accScore}</td>
@@ -52,50 +60,71 @@
             }.html">View Report</a></td>
           </tr>`
       );
+
+      setAverages();
     });
   </script>
   <h1>Lighthouse Bulk Reports</h1>
   <h2>Mode: <%= emulationMode %></h2>
-  <br>
+  <br />
   <h2 id="report-count"></h2>
   <h2 id="current-report"></h2>
+
   <table id="results-table">
-    <thead>
+    <tbody id="averages">
       <tr>
-        <th>Title</th>
-        <th>URL</th>
-        <th>Overall</th>
-        <th>Performance</th>
-        <th>Accessibility</th>
-        <th>Best Practices</th>
-        <th>SEO</th>
-        <th class="not-sortable">Complete Report</th>
+        <td colspan="2">Averages</td>
+        <td id="overall-avg"></td>
+        <td id="perf-avg"></td>
+        <td id="acc-avg"></td>
+        <td id="bp-avg"></td>
+        <td id="seo-avg"></td>
+        <td></td>
       </tr>
-    </thead>
+    </tbody>
+    <tbody id="header-tbody">
+      <tr>
+        <td class="header">Title</td>
+        <td class="header">URL</td>
+        <td class="header number">Overall</td>
+        <td class="header number">Performance</td>
+        <td class="header number">Accessibility</td>
+        <td class="header number">Best Practices</td>
+        <td class="header number">SEO</td>
+        <td class="header not-sortable">Complete Report</td>
+      </tr>
+    </tbody>
     <tbody id="results"></tbody>
   </table>
 
   <script>
     const table = document.getElementById("results-table");
-    const tbody = table.querySelector("tbody");
-    const headers = table.querySelectorAll("th");
+    const tbody = document.getElementById("results");
+    const headers = table.querySelectorAll(".header");
 
+    //add event listeners to headers for sorting
     [].forEach.call(headers, function (header, i) {
       if (header.classList.contains("not-sortable")) {
         return;
       }
       header.addEventListener("click", function () {
-        sortTable(i);
-        console.log("clicked");
+        sortTable(i, header.classList.contains("number") ? "number" : "string");
+        console.log("clicked", i);
       });
     });
 
-    function sortTable(i) {
+    function sortTable(i, dataType) {
       const rows = tbody.querySelectorAll("tr");
       const sortedRows = Array.from(rows).sort((rowA, rowB) => {
-        const cellA = rowA.querySelectorAll("td")[i].innerText;
-        const cellB = rowB.querySelectorAll("td")[i].innerText;
-        return cellA > cellB ? 1 : -1;
+        if (dataType === "number") {
+          const cellA = parseInt(rowA.querySelectorAll("td")[i].innerText);
+          const cellB = parseInt(rowB.querySelectorAll("td")[i].innerText);
+          return cellA < cellB ? 1 : -1;
+        } else {
+          const cellA = rowA.querySelectorAll("td")[i].innerText;
+          const cellB = rowB.querySelectorAll("td")[i].innerText;
+          return cellA > cellB ? 1 : -1;
+        }
       });
       while (tbody.firstChild) {
         tbody.removeChild(tbody.firstChild);
@@ -103,6 +132,41 @@
       tbody.append(...sortedRows);
     }
 
+    function setAverages() {
+      const rows = tbody.querySelectorAll("tr");
+      let overallCombined = 0;
+      let perfCombined = 0;
+      let accCombined = 0;
+      let bpCombined = 0;
+      let seoCombined = 0;
 
+      [].forEach.call(rows, function (row, i) {
+        overallCombined += parseInt(row.querySelectorAll("td")[2].innerText);
+        perfCombined += parseInt(row.querySelectorAll("td")[3].innerText);
+        accCombined += parseInt(row.querySelectorAll("td")[4].innerText);
+        bpCombined += parseInt(row.querySelectorAll("td")[5].innerText);
+        seoCombined += parseInt(row.querySelectorAll("td")[6].innerText);
+      });
+
+      const overallAvg = Math.floor(overallCombined / rows.length);
+      const perfAvg = Math.floor(perfCombined / rows.length);
+      const accAvg = Math.floor(accCombined / rows.length);
+      const bpAvg = Math.floor(bpCombined / rows.length);
+      const seoAvg = Math.floor(seoCombined / rows.length);
+
+      console.log(overallAvg, perfAvg, accAvg, bpAvg, seoAvg);
+
+      document.getElementById("overall-avg").innerText = overallAvg;
+      document.getElementById("perf-avg").innerText = perfAvg;
+      document.getElementById("acc-avg").innerText = accAvg;
+      document.getElementById("bp-avg").innerText = bpAvg;
+      document.getElementById("seo-avg").innerText = seoAvg;
+
+      replaceScoreClass(document.getElementById("overall-avg"), overallAvg);
+      replaceScoreClass(document.getElementById("perf-avg"), perfAvg);
+      replaceScoreClass(document.getElementById("acc-avg"), accAvg);
+      replaceScoreClass(document.getElementById("bp-avg"), bpAvg);
+      replaceScoreClass(document.getElementById("seo-avg"), seoAvg);
+    }
   </script>
 </body>
