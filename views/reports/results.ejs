@@ -3,6 +3,7 @@
   <p id="thisHere"></p>
   <script type="text/javascript">
     const source = new EventSource("/sse");
+    const failedAudits = {};
 
     function getScoreClass(score) {
       if (score >= 90) {
@@ -62,6 +63,21 @@
       );
 
       setAverages();
+
+      for (const audit of Object.entries(data.lhr.audits)) {
+        if (audit[1].scoreDisplayMode === "binary" && audit[1].score === 0) {
+          console.log("Found a failed audit: ", audit[0]);
+
+          if(Object.keys(failedAudits).includes(audit[0])) {
+            failedAudits[audit[0]] += 1;
+          } else {
+            failedAudits[audit[0]] = 1;
+          }
+
+        }
+      }
+
+
     });
   </script>
   <h1>Lighthouse Bulk Reports</h1>
