@@ -3,26 +3,50 @@
   <p id="thisHere"></p>
   <script type="text/javascript">
     const source = new EventSource("/sse");
+
+    function getScoreClass(score) {
+      if (score >= 90) {
+        return "score-green";
+      } else if (score >= 50) {
+        return "score-yellow";
+      } else {
+        return "score-red";
+      }
+    }
+
     source.addEventListener("message", (message) => {
       console.log("Got ", message);
       const data = JSON.parse(event.data);
       console.log(data);
-      const overallScore =
-        ((data.lhr.categories.performance.score +
-        data.lhr.categories.accessibility.score +
-        data.lhr.categories["best-practices"].score +
-        data.lhr.categories.seo.score) / 4) * 100;
+
+      if(Object.keys(data).includes("reportData")) {
+        document.getElementById("report-count").innerText = data.reportData.reportCount;
+        document.getElementById("current-report").innerText = data.reportData.currentReport;
+        return;
+
+      }
+
+
+
+      const perfScore = data.lhr.categories.performance.score * 100;
+      const accScore = data.lhr.categories.accessibility.score * 100;
+      const bpScore = data.lhr.categories["best-practices"].score * 100;
+      const seoScore = data.lhr.categories.seo.score * 100;
+
+      const overallScore = Math.floor(
+        (perfScore + accScore + bpScore + seoScore) / 4
+      );
 
       document.getElementById("results").insertAdjacentHTML(
         "beforeend",
         `<tr>
             <td>${data.title}</td>
-            <td>${data.url}</td>
-            <td>${overallScore}</td>
-            <td>${data.lhr.categories.performance.score * 100}</td>
-            <td>${data.lhr.categories.accessibility.score * 100}</td>
-            <td>${data.lhr.categories["best-practices"].score * 100}</td>
-            <td>${data.lhr.categories.seo.score * 100}</td>
+            <td><a target="_blank" rel="noreferrer noopener" href="${data.url}">${data.url}</a></td>
+            <td class="${getScoreClass(overallScore)}">${overallScore}</td>
+            <td class="${getScoreClass(perfScore)}">${perfScore}</td>
+            <td class="${getScoreClass(accScore)}">${accScore}</td>
+            <td class="${getScoreClass(bpScore)}">${bpScore}</td>
+            <td class="${getScoreClass(seoScore)}">${seoScore}</td>
             <td><a target="_blank" rel="noreferrer noopener" href="/lighthouse/${
               data.fileId
             }.html">View Report</a></td>
@@ -32,8 +56,10 @@
   </script>
   <h1>Lighthouse Bulk Reports</h1>
   <h2>Mode: <%= emulationMode %></h2>
-
-  <table>
+  <br>
+  <h2 id="report-count"></h2>
+  <h2 id="current-report"></h2>
+  <table id="results-table">
     <thead>
       <tr>
         <th>Title</th>
@@ -43,9 +69,40 @@
         <th>Accessibility</th>
         <th>Best Practices</th>
         <th>SEO</th>
-        <th>Complete Report</th>
+        <th class="not-sortable">Complete Report</th>
       </tr>
     </thead>
     <tbody id="results"></tbody>
   </table>
+
+  <script>
+    const table = document.getElementById("results-table");
+    const tbody = table.querySelector("tbody");
+    const headers = table.querySelectorAll("th");
+
+    [].forEach.call(headers, function (header, i) {
+      if (header.classList.contains("not-sortable")) {
+        return;
+      }
+      header.addEventListener("click", function () {
+        sortTable(i);
+        console.log("clicked");
+      });
+    });
+
+    function sortTable(i) {
+      const rows = tbody.querySelectorAll("tr");
+      const sortedRows = Array.from(rows).sort((rowA, rowB) => {
+        const cellA = rowA.querySelectorAll("td")[i].innerText;
+        const cellB = rowB.querySelectorAll("td")[i].innerText;
+        return cellA > cellB ? 1 : -1;
+      });
+      while (tbody.firstChild) {
+        tbody.removeChild(tbody.firstChild);
+      }
+      tbody.append(...sortedRows);
+    }
+
+
+  </script>
 </body>

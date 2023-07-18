@@ -37,7 +37,6 @@ app.use("/sse", async function (req, res) {
   res.flushHeaders();
 
   res.write("retry: 10000\n\n");
-  let counter = 0;
 
   user = {res};
 
@@ -47,23 +46,87 @@ app.use("/sse", async function (req, res) {
 });
 
 app.post("/reports/generate", async function (req, res, next) {
-
   const form = formidable({uploadDir: path.join(__dirname, "uploads/csv")});
   const [fields, files] = await form.parse(req);
   console.log(fields);
   console.log(files);
 
   const singleUrl = fields.url ? fields.url[0] : null;
-  const csv = files.csvFile[0] ? "/uploads/csv/" + files.csvFile[0].newFilename : null;
+  const csv = files.csvFile[0]
+    ? "/uploads/csv/" + files.csvFile[0].newFilename
+    : null;
 
   res.render("reports/results", {
     title: "Report Results",
     emulationMode: fields.emulationMode ? "Mobile" : "Desktop",
   });
 
+  await (async () => {
+    console.log("waiting for user");
+    while (!user.res)
+      // define the condition as you like
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log("user is defined");
+    console.log(user.res);
+  })();
 
-  if(singleUrl && !csv) {
+  if (!singleUrl && csv) {
+    const csvFile = fs.readFileSync(path.join(__dirname, csv), "utf8");
+
+    const rows = Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+    });
+
+    var currentIndex = 0;
+    for (const row of rows.data) {
+      currentIndex++;
+      console.log(user);
+
+      user.res.write(
+        `data: ${JSON.stringify({
+          reportData: {
+            reportCount: `Report ${currentIndex} of ${rows.data.length}`,
+            currentReport: `Generating Report for ${row["URL"]}`,
+          },
+        })}\n\n`
+      );
+
+      const results = await generateLighthouseReport(
+        row["URL"],
+        fields.emulationMode == "on" ? false : true
+      );
+
+      const fileId = uuidv4();
+      await generateReportFiles(results, fileId);
+      results.fileId = fileId;
+      results.title = row["Title"];
+      results.url = row["URL"];
+
+      user.res.write(`data: ${JSON.stringify(results)}\n\n`);
+    }
+
+    user.res.write(
+      `data: ${JSON.stringify({
+        reportData: {
+          reportCount: `${rows.data.length} Reports`,
+          currentReport: `All Reports Generated`,
+        },
+      })}\n\n`
+    );
+
+  } else {
     console.log(singleUrl);
+
+    user.res.write(
+      `data: ${JSON.stringify({
+        reportData: {
+          reportCount: `Single Report`,
+          currentReport: `Generating Report for ${singleUrl}`,
+        },
+      })}\n\n`
+    );
+
     const results = await generateLighthouseReport(
       singleUrl,
       fields.emulationMode == "on" ? false : true
@@ -72,40 +135,22 @@ app.post("/reports/generate", async function (req, res, next) {
     const fileId = uuidv4();
     await generateReportFiles(results, fileId);
     results.fileId = fileId;
+    results.url = singleUrl;
+    results.title = "Not supported for Single Urls";
 
     user.res.write(`data: ${JSON.stringify(results)}\n\n`);
-  } else if(!singleUrl && csv) {
 
-    const csvFile = fs.readFileSync(path.join(__dirname, csv), "utf8");
-
-
-    const rows = Papa.parse(csvFile, {
-      header: true,
-      skipEmptyLines: true,
-    });
-
-    for(const row of rows.data) {
-        console.log(row);
-        console.log("here");
-        const results = await generateLighthouseReport(
-          row["URL"],
-          fields.emulationMode == "on" ? false : true
-        );
-
-        const fileId = uuidv4();
-        await generateReportFiles(results, fileId);
-        results.fileId = fileId;
-        results.title = row["Title"];
-        results.url = row["URL"];
-    
-        user.res.write(`data: ${JSON.stringify(results)}\n\n`);
-    }
-
+    user.res.write(
+      `data: ${JSON.stringify({
+        reportData: {
+          reportCount: `Single Report`,
+          currentReport: "Finished",
+        },
+      })}\n\n`
+    );
   }
 
-
-
-/*   for (const url of urls) {
+  /*   for (const url of urls) {
     console.log(url);
     const results = await generateLighthouseReport(
       url,
@@ -129,7 +174,7 @@ async function generateLighthouseReport(
   opts = {logLevel: "info"}
 ) {
   const chrome = await chromeLauncher.launch({
-    chromeFlags: ["--headless=new"],
+    chromeFlags: ["--headless"],
   });
   opts.port = chrome.port;
 
@@ -145,7 +190,7 @@ async function generateLighthouseReport(
     },
   });
 
-  //await chrome.kill();
+  await chrome.kill();
   return results;
 }
 
