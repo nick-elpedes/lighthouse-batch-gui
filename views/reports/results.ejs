@@ -1,6 +1,5 @@
 <%- include('../head.ejs') %>
 <body>
-  <p id="thisHere"></p>
   <script type="text/javascript">
     const source = new EventSource("/sse");
     const failedAudits = {};
@@ -68,16 +67,34 @@
         if (audit[1].scoreDisplayMode === "binary" && audit[1].score === 0) {
           console.log("Found a failed audit: ", audit[0]);
 
-          if(Object.keys(failedAudits).includes(audit[0])) {
-            failedAudits[audit[0]] += 1;
+          if (Object.keys(failedAudits).includes(audit[0])) {
+            failedAudits[audit[0]].count += 1;
           } else {
-            failedAudits[audit[0]] = 1;
+            failedAudits[audit[0]] = {};
+            failedAudits[audit[0]].count = 1;
+            failedAudits[audit[0]].title = audit[1].title;
           }
-
         }
       }
 
+      document.getElementById("audit-data").innerHTML = "";
+      for (const audit of Object.entries(failedAudits)) {
+        document
+          .getElementById("audit-data")
+          .insertAdjacentHTML(
+            "beforeend",
+            `<li data-count="${audit[1].count}">${audit[0]}: ${audit[1].count}<br><pre class="audit-description">${audit[1].title.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre></li>`
+          );
+      }
 
+      const audits = document.querySelectorAll("#audit-data li");
+      const sortedAudits = Array.from(audits).sort((a, b) => {
+        const countA = parseInt(a.getAttribute("data-count"));
+        const countB = parseInt(b.getAttribute("data-count"));
+        return sorting.sortFunc(countB, countA);
+      });
+      document.getElementById("audit-data").innerHTML = "";
+      document.getElementById("audit-data").append(...sortedAudits);
     });
   </script>
   <h1>Lighthouse Bulk Reports</h1>
@@ -112,6 +129,11 @@
     </tbody>
     <tbody id="results"></tbody>
   </table>
+  <br />
+  <br />
+  <h2>Failed Audits</h2>
+  <br />
+  <ul id="audit-data"></ul>
 
   <script>
     const table = document.getElementById("results-table");
@@ -121,18 +143,18 @@
       column: 0,
       direction: "asc",
       sortFunc: (a, b) => {
-        return (sorting.direction == "asc") ? (a > b ? 1 : -1) : (a < b ? 1 : -1);
+        return sorting.direction == "asc" ? (a > b ? 1 : -1) : a < b ? 1 : -1;
       },
       setSort: (column) => {
         const selectedHeader = headers[column];
-        if(column === sorting.column) {
+        if (column === sorting.column) {
           sorting.direction = sorting.direction === "asc" ? "desc" : "asc";
         } else {
           sorting.column = column;
           sorting.direction = "asc";
         }
 
-        for(const header of headers) {
+        for (const header of headers) {
           header.classList.remove("asc");
           header.classList.remove("desc");
         }
@@ -151,6 +173,7 @@
       });
     });
 
+    //sort table by column
     function sortTable(i, dataType) {
       sorting.setSort(i);
       const rows = tbody.querySelectorAll("tr");
