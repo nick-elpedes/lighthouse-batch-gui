@@ -52,7 +52,7 @@ app.post("/reports/generate", async function (req, res, next) {
   console.log(files); */
 
   const singleUrl = fields.url ? fields.url[0] : null;
-  const csv = files.csvFile[0]
+  const csv = files.csvFile
     ? "/uploads/csv/" + files.csvFile[0].newFilename
     : null;
 

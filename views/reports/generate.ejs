@@ -3,30 +3,48 @@
   <h1>Generate Bulk Page Lighthouse Report</h1>
   <br />
   <br />
+  <form id="url-form" action="/reports/generate" method="post">
+    <label for="url">Input URL</label>
+    <input type="url" name="url" id="url" /><br />
+    <button id="submit-url-form" type="button">Generate Report</button>
+  </form>
+
+  <br /><br />
+  OR
+  <br /><br />
+
   <form
-    id="urlForm"
+    id="csv-form"
     action="/reports/generate"
     method="post"
     enctype="multipart/form-data"
   >
-    <label for="url">Input URL</label> <input type="url" name="url" id="url" />
-
-    <br /><br />
-    OR
-    <br /><br />
-
     <label for="csvFile">Upload CSV File</label>
-    <input type="file" name="csvFile" id="csvFile" />
-
-    <br />
-    <br />
-
-    <h2>Settings</h2>
-    <label for="emulationMode">Emulate Mobile Device?</label>
-    <input type="checkbox" name="emulationMode" id="emulationMode" />
-
-    <br />
-    <br />
-    <input type="submit" value="Generate" />
+    <input type="file" name="csvFile" id="csvFile" /><br />
+    <button id="submit-csv-form" type="button">Generate Reports</button>
   </form>
+
+  <br />
+  <br />
+
+  <h2>Settings</h2>
+  <label for="emulationMode">Emulate Mobile Device?</label>
+  <input type="checkbox" name="emulationMode" id="emulationMode" />
+
+  <script>
+    const urlForm = document.getElementById("url-form");
+    const csvForm = document.getElementById("csv-form");
+    const submitUrlForm = document.getElementById("submit-url-form");
+    const submitCsvForm = document.getElementById("submit-csv-form");
+
+    submitUrlForm.addEventListener("click", () => {
+      document.getElementById("emulationMode").setAttribute("form", "url-form");
+      urlForm.submit();
+    });
+
+    submitCsvForm.addEventListener("click", () => {
+      document.getElementById("emulationMode").setAttribute("form", "csv-form");
+      csvForm.submit();
+    });
+  </script>
 </body>
