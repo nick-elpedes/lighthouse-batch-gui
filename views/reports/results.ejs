@@ -117,6 +117,28 @@
     const table = document.getElementById("results-table");
     const tbody = document.getElementById("results");
     const headers = table.querySelectorAll(".header");
+    const sorting = {
+      column: 0,
+      direction: "asc",
+      sortFunc: (a, b) => {
+        return (sorting.direction == "asc") ? (a > b ? 1 : -1) : (a < b ? 1 : -1);
+      },
+      setSort: (column) => {
+        const selectedHeader = headers[column];
+        if(column === sorting.column) {
+          sorting.direction = sorting.direction === "asc" ? "desc" : "asc";
+        } else {
+          sorting.column = column;
+          sorting.direction = "asc";
+        }
+
+        for(const header of headers) {
+          header.classList.remove("asc");
+          header.classList.remove("desc");
+        }
+        selectedHeader.classList.add(sorting.direction);
+      },
+    };
 
     //add event listeners to headers for sorting
     [].forEach.call(headers, function (header, i) {
@@ -130,16 +152,17 @@
     });
 
     function sortTable(i, dataType) {
+      sorting.setSort(i);
       const rows = tbody.querySelectorAll("tr");
       const sortedRows = Array.from(rows).sort((rowA, rowB) => {
         if (dataType === "number") {
           const cellA = parseInt(rowA.querySelectorAll("td")[i].innerText);
           const cellB = parseInt(rowB.querySelectorAll("td")[i].innerText);
-          return cellA < cellB ? 1 : -1;
+          return sorting.sortFunc(cellB, cellA);
         } else {
           const cellA = rowA.querySelectorAll("td")[i].innerText;
           const cellB = rowB.querySelectorAll("td")[i].innerText;
-          return cellA > cellB ? 1 : -1;
+          return sorting.sortFunc(cellA, cellB);
         }
       });
       while (tbody.firstChild) {
