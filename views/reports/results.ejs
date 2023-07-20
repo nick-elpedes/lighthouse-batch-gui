@@ -21,6 +21,10 @@
       element.classList.add(getScoreClass(score));
     }
 
+    let autoSort = () => {
+      console.log("not set");
+    };
+
     source.addEventListener("message", (message) => {
       console.log("Got ", message);
       const data = JSON.parse(event.data);
@@ -61,6 +65,7 @@
           </tr>`
       );
 
+      autoSort();
       setAverages();
 
       for (const audit of Object.entries(data.lhr.audits)) {
@@ -168,14 +173,15 @@
         return;
       }
       header.addEventListener("click", function () {
+        autoSort = () => {sortTable(i, header.classList.contains("number") ? "number" : "string", false)};
         sortTable(i, header.classList.contains("number") ? "number" : "string");
         console.log("clicked", i);
       });
     });
 
     //sort table by column
-    function sortTable(i, dataType) {
-      sorting.setSort(i);
+    function sortTable(i, dataType, setSort = true) {
+      if (setSort) sorting.setSort(i);
       const rows = tbody.querySelectorAll("tr");
       const sortedRows = Array.from(rows).sort((rowA, rowB) => {
         if (dataType === "number") {
@@ -230,5 +236,6 @@
       replaceScoreClass(document.getElementById("bp-avg"), bpAvg);
       replaceScoreClass(document.getElementById("seo-avg"), seoAvg);
     }
+
   </script>
 </body>
