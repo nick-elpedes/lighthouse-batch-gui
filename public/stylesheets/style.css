@@ -1,8 +1,55 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-a {
-  color: #00B7FF;
+body {
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+}
+
+.header {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.header.not-sortable {
+  cursor: not-allowed;
+}
+
+#averages {
+  background-color: lightgrey;
+}
+
+input[type="submit"] {
+  width: 100%;
+}
+
+.score-green {
+  background-color: rgb(0, 255, 0);
+}
+
+.score-red {
+  background-color: red;
+}
+
+.score-yellow {
+  background-color: yellow;
+}
+
+.audit-description {
+  font-size: 0.8em;
+  color: grey;
+}
+
+.asc::after {
+  content: "▲";
+}
+
+.desc::after {
+  content: "▼";
 }

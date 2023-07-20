@@ -1,33 +1,241 @@
 <%- include('../head.ejs') %>
 <body>
+  <script type="text/javascript">
+    const source = new EventSource("/sse");
+    const failedAudits = {};
+
+    function getScoreClass(score) {
+      if (score >= 90) {
+        return "score-green";
+      } else if (score >= 50) {
+        return "score-yellow";
+      } else {
+        return "score-red";
+      }
+    }
+
+    function replaceScoreClass(element, score) {
+      element.classList.remove("score-green");
+      element.classList.remove("score-yellow");
+      element.classList.remove("score-red");
+      element.classList.add(getScoreClass(score));
+    }
+
+    let autoSort = () => {
+      console.log("not set");
+    };
+
+    source.addEventListener("message", (message) => {
+      console.log("Got ", message);
+      const data = JSON.parse(event.data);
+      console.log(data);
+
+      if (Object.keys(data).includes("reportData")) {
+        document.getElementById("report-count").innerText =
+          data.reportData.reportCount;
+        document.getElementById("current-report").innerText =
+          data.reportData.currentReport;
+        return;
+      }
+
+      const perfScore = data.lhr.categories.performance.score * 100;
+      const accScore = data.lhr.categories.accessibility.score * 100;
+      const bpScore = data.lhr.categories["best-practices"].score * 100;
+      const seoScore = data.lhr.categories.seo.score * 100;
+
+      const overallScore = Math.floor(
+        (perfScore + accScore + bpScore + seoScore) / 4
+      );
+
+      document.getElementById("results").insertAdjacentHTML(
+        "beforeend",
+        `<tr>
+            <td>${data.title}</td>
+            <td><a target="_blank" rel="noreferrer noopener" href="${
+              data.url
+            }">${data.url}</a></td>
+            <td class="${getScoreClass(overallScore)}">${overallScore}</td>
+            <td class="${getScoreClass(perfScore)}">${perfScore}</td>
+            <td class="${getScoreClass(accScore)}">${accScore}</td>
+            <td class="${getScoreClass(bpScore)}">${bpScore}</td>
+            <td class="${getScoreClass(seoScore)}">${seoScore}</td>
+            <td><a target="_blank" rel="noreferrer noopener" href="/lighthouse/${
+              data.fileId
+            }.html">View Report</a></td>
+          </tr>`
+      );
+
+      autoSort();
+      setAverages();
+
+      for (const audit of Object.entries(data.lhr.audits)) {
+        if (audit[1].scoreDisplayMode === "binary" && audit[1].score === 0) {
+          console.log("Found a failed audit: ", audit[0]);
+
+          if (Object.keys(failedAudits).includes(audit[0])) {
+            failedAudits[audit[0]].count += 1;
+          } else {
+            failedAudits[audit[0]] = {};
+            failedAudits[audit[0]].count = 1;
+            failedAudits[audit[0]].title = audit[1].title;
+          }
+        }
+      }
+
+      document.getElementById("audit-data").innerHTML = "";
+      for (const audit of Object.entries(failedAudits)) {
+        document
+          .getElementById("audit-data")
+          .insertAdjacentHTML(
+            "beforeend",
+            `<li data-count="${audit[1].count}">${audit[0]}: ${audit[1].count}<br><pre class="audit-description">${audit[1].title.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre></li>`
+          );
+      }
+
+      const audits = document.querySelectorAll("#audit-data li");
+      const sortedAudits = Array.from(audits).sort((a, b) => {
+        const countA = parseInt(a.getAttribute("data-count"));
+        const countB = parseInt(b.getAttribute("data-count"));
+        return sorting.sortFunc(countB, countA);
+      });
+      document.getElementById("audit-data").innerHTML = "";
+      document.getElementById("audit-data").append(...sortedAudits);
+    });
+  </script>
   <h1>Lighthouse Bulk Reports</h1>
   <h2>Mode: <%= emulationMode %></h2>
-  <table>
-    <thead>
+  <br />
+  <h2 id="report-count"></h2>
+  <h2 id="current-report"></h2>
+
+  <table id="results-table">
+    <tbody id="averages">
       <tr>
-        <th>URL</th>
-        <th>Overall</th>
-        <th>Performance</th>
-        <th>Accessibility</th>
-        <th>Best Practices</th>
-        <th>SEO</th>
-        <th>PWA</th>
-        <th>Complete Report</th>
+        <td colspan="2">Averages</td>
+        <td id="overall-avg"></td>
+        <td id="perf-avg"></td>
+        <td id="acc-avg"></td>
+        <td id="bp-avg"></td>
+        <td id="seo-avg"></td>
+        <td></td>
       </tr>
-    </thead>
-    <tbody>
-      <% for (var i = 0; i < reports.length; i++) { %>
-        <tr>
-          <td><%= reports[i].url %></td>
-          <td><%= reports[i].score %></td>
-          <td><%= reports[i].detail.performance %></td>
-          <td><%= reports[i].detail.accessibility %></td>
-          <td><%= reports[i].detail["best-practices"] %></td>
-          <td><%= reports[i].detail.seo %></td>
-          <td><%= reports[i].detail.pwa %></td>
-          <td><a href="../lighthouse/<%= reports[i].html %>">Full Page Report</a></td>
-        </tr>
-      <% } %>
     </tbody>
+    <tbody id="header-tbody">
+      <tr>
+        <td class="header">Title</td>
+        <td class="header">URL</td>
+        <td class="header number">Overall</td>
+        <td class="header number">Performance</td>
+        <td class="header number">Accessibility</td>
+        <td class="header number">Best Practices</td>
+        <td class="header number">SEO</td>
+        <td class="header not-sortable">Complete Report</td>
+      </tr>
+    </tbody>
+    <tbody id="results"></tbody>
   </table>
+  <br />
+  <br />
+  <h2>Failed Audits</h2>
+  <br />
+  <ul id="audit-data"></ul>
+
+  <script>
+    const table = document.getElementById("results-table");
+    const tbody = document.getElementById("results");
+    const headers = table.querySelectorAll(".header");
+    const sorting = {
+      column: 0,
+      direction: "asc",
+      sortFunc: (a, b) => {
+        return sorting.direction == "asc" ? (a > b ? 1 : -1) : a < b ? 1 : -1;
+      },
+      setSort: (column) => {
+        const selectedHeader = headers[column];
+        if (column === sorting.column) {
+          sorting.direction = sorting.direction === "asc" ? "desc" : "asc";
+        } else {
+          sorting.column = column;
+          sorting.direction = "asc";
+        }
+
+        for (const header of headers) {
+          header.classList.remove("asc");
+          header.classList.remove("desc");
+        }
+        selectedHeader.classList.add(sorting.direction);
+      },
+    };
+
+    //add event listeners to headers for sorting
+    [].forEach.call(headers, function (header, i) {
+      if (header.classList.contains("not-sortable")) {
+        return;
+      }
+      header.addEventListener("click", function () {
+        autoSort = () => {sortTable(i, header.classList.contains("number") ? "number" : "string", false)};
+        sortTable(i, header.classList.contains("number") ? "number" : "string");
+        console.log("clicked", i);
+      });
+    });
+
+    //sort table by column
+    function sortTable(i, dataType, setSort = true) {
+      if (setSort) sorting.setSort(i);
+      const rows = tbody.querySelectorAll("tr");
+      const sortedRows = Array.from(rows).sort((rowA, rowB) => {
+        if (dataType === "number") {
+          const cellA = parseInt(rowA.querySelectorAll("td")[i].innerText);
+          const cellB = parseInt(rowB.querySelectorAll("td")[i].innerText);
+          return sorting.sortFunc(cellB, cellA);
+        } else {
+          const cellA = rowA.querySelectorAll("td")[i].innerText;
+          const cellB = rowB.querySelectorAll("td")[i].innerText;
+          return sorting.sortFunc(cellA, cellB);
+        }
+      });
+      while (tbody.firstChild) {
+        tbody.removeChild(tbody.firstChild);
+      }
+      tbody.append(...sortedRows);
+    }
+
+    function setAverages() {
+      const rows = tbody.querySelectorAll("tr");
+      let overallCombined = 0;
+      let perfCombined = 0;
+      let accCombined = 0;
+      let bpCombined = 0;
+      let seoCombined = 0;
+
+      [].forEach.call(rows, function (row, i) {
+        overallCombined += parseInt(row.querySelectorAll("td")[2].innerText);
+        perfCombined += parseInt(row.querySelectorAll("td")[3].innerText);
+        accCombined += parseInt(row.querySelectorAll("td")[4].innerText);
+        bpCombined += parseInt(row.querySelectorAll("td")[5].innerText);
+        seoCombined += parseInt(row.querySelectorAll("td")[6].innerText);
+      });
+
+      const overallAvg = Math.floor(overallCombined / rows.length);
+      const perfAvg = Math.floor(perfCombined / rows.length);
+      const accAvg = Math.floor(accCombined / rows.length);
+      const bpAvg = Math.floor(bpCombined / rows.length);
+      const seoAvg = Math.floor(seoCombined / rows.length);
+
+      console.log(overallAvg, perfAvg, accAvg, bpAvg, seoAvg);
+
+      document.getElementById("overall-avg").innerText = overallAvg;
+      document.getElementById("perf-avg").innerText = perfAvg;
+      document.getElementById("acc-avg").innerText = accAvg;
+      document.getElementById("bp-avg").innerText = bpAvg;
+      document.getElementById("seo-avg").innerText = seoAvg;
+
+      replaceScoreClass(document.getElementById("overall-avg"), overallAvg);
+      replaceScoreClass(document.getElementById("perf-avg"), perfAvg);
+      replaceScoreClass(document.getElementById("acc-avg"), accAvg);
+      replaceScoreClass(document.getElementById("bp-avg"), bpAvg);
+      replaceScoreClass(document.getElementById("seo-avg"), seoAvg);
+    }
+
+  </script>
 </body>
